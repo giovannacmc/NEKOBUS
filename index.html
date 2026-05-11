@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NEKOBUS | Paradas Inteligentes com Energia Solar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+
+    /* ===================== VARIÁVEIS ===================== */
+    :root {
+      --verde-claro: #d9f3e4;
+      --verde: #7cc9a3;
+      --verde-escuro: #3d8b6d;
+      --azul-claro: #d8efff;
+      --azul: #6bb6e8;
+      --azul-escuro: #245b7a;
+      --branco: #ffffff;
+      --gelo: #f4fbff;
+      --texto: #18323f;
+      --texto-suave: #5b7480;
+      --borda: rgba(36, 91, 122, 0.12);
+      --sombra: rgba(36, 91, 122, 0.10);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--gelo); color: var(--texto); overflow-x: hidden; }
+    img { width: 100%; display: block; }
+    a { text-decoration: none; }
+    ul { list-style: none; }
+
+    /* ===================== HERO ===================== */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(rgba(8,20,30,0.82), rgba(8,20,30,0.82)),
+        url("./img/banner.jpg") center/cover no-repeat;
+      color: var(--branco);
+      padding: 2rem 8%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(244,251,255,0.08), transparent);
+    }
+
+    /* ===================== MENU ===================== */
+    .menu {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5rem;
+      position: relative;
+      z-index: 2;
+    }
+    .logo { font-family: 'Orbitron', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--branco); letter-spacing: 1px; }
+    .menu-links { display: flex; gap: 2rem; }
+    .menu-links a { color: var(--branco); font-weight: 500; position: relative; transition: 0.3s; }
+    .menu-links a::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 0%; height: 2px; background: var(--verde); transition: 0.3s; }
+    .menu-links a:hover::after { width: 100%; }
+    .menu-links a:hover { color: var(--verde); }
+
+    /* ===================== HERO CONTENT ===================== */
+    .hero-conteudo { max-width: 760px; margin: auto 0; position: relative; z-index: 2; }
+    .eyebrow { color: var(--verde); font-weight: 600; margin-bottom: 1rem; letter-spacing: 1px; text-transform: uppercase; }
+    .hero h1 { font-family: 'Orbitron', sans-serif; font-size: 4.5rem; line-height: 1.1; margin-bottom: 1.5rem; }
+    .descricao { font-size: 1.1rem; line-height: 1.9; color: rgba(255,255,255,0.85); margin-bottom: 2rem; }
+    .acoes { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .botao-primario, .botao-secundario { padding: 1rem 1.8rem; border-radius: 14px; font-weight: 600; transition: 0.3s; }
+    .botao-primario { background: var(--verde); color: var(--texto); box-shadow: 0 10px 25px rgba(124,201,163,0.18); }
+    .botao-primario:hover { transform: translateY(-4px); box-shadow: 0 15px 35px rgba(124,201,163,0.35); }
+    .botao-secundario { border: 1px solid rgba(255,255,255,0.25); color: var(--branco); }
+    .botao-secundario:hover { background: rgba(255,255,255,0.08); }
+
+    /* ===================== SEÇÕES ===================== */
+    .secao { padding: 7rem 8%; }
+    .secao-titulo { text-align: center; max-width: 850px; margin: 0 auto 4rem; }
+    .rotulo { color: var(--verde-escuro); font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .secao h2 { font-family: 'Orbitron', sans-serif; font-size: 2.8rem; line-height: 1.2; margin-bottom: 1.2rem; }
+    .secao-titulo p { color: var(--texto-suave); line-height: 1.8; }
+
+    /* ===================== CARDS ===================== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
+    .card { background: var(--branco); border: 1px solid var(--borda); border-radius: 24px; overflow: hidden; box-shadow: 0 15px 40px var(--sombra); transition: 0.35s; }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 20px 50px rgba(36,91,122,0.16); }
+    .card figure { position: relative; overflow: hidden; }
+    .card img { height: 250px; object-fit: cover; transition: 0.5s; }
+    .card:hover img { transform: scale(1.05); }
+    .card figcaption { position: absolute; bottom: 1rem; left: 1rem; background: rgba(0,0,0,0.55); color: var(--branco); padding: 0.45rem 0.9rem; border-radius: 999px; font-size: 0.85rem; }
+    .card h3 { font-size: 1.3rem; margin: 1.5rem 1.5rem 1rem; }
+    .card p { margin: 0 1.5rem 2rem; color: var(--texto-suave); line-height: 1.8; }
+
+    /* ===================== SOBRE ===================== */
+    .sobre { background: linear-gradient(to bottom, rgba(255,255,255,0.7), rgba(216,239,255,0.25)); }
+    .sobre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .sobre-imagem img { border-radius: 24px; box-shadow: 0 20px 45px var(--sombra); height: 100%; object-fit: cover; }
+    .sobre-texto p { line-height: 1.95; margin-bottom: 1.5rem; color: var(--texto-suave); }
+
+    /* ===================== PROCESSO ===================== */
+    .processo { background: linear-gradient(to bottom, transparent, rgba(216,239,255,0.35)); }
+    .processo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }
+    .processo-card { background: var(--branco); padding: 2.5rem; border-radius: 24px; border: 1px solid var(--borda); box-shadow: 0 15px 35px var(--sombra); transition: 0.3s; }
+    .processo-card:hover { transform: translateY(-6px); }
+    .processo-card span { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(135deg, var(--verde), var(--azul)); color: var(--texto); font-weight: 700; margin-bottom: 1.5rem; box-shadow: 0 10px 25px rgba(107,182,232,0.22); }
+    .processo-card h3 { margin-bottom: 1rem; font-size: 1.3rem; }
+    .processo-card p { line-height: 1.8; color: var(--texto-suave); }
+
+    /* ===================== PAINEL ===================== */
+    .painel-preco { background: linear-gradient(135deg, var(--azul-escuro), var(--verde-escuro)); color: var(--branco); padding: 4rem; border-radius: 32px; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+    .painel-preco::before { content: ""; position: absolute; width: 400px; height: 400px; background: rgba(255,255,255,0.05); border-radius: 50%; top: -180px; right: -120px; }
+    .painel-preco h3 { font-size: 2rem; margin-bottom: 1.5rem; position: relative; z-index: 2; }
+    .painel-preco p { max-width: 850px; margin: 0 auto 1.5rem; line-height: 1.9; color: rgba(255,255,255,0.88); position: relative; z-index: 2; }
+
+    /* ===================== CONTATO ===================== */
+    .contato-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }
+    .contato-card { background: var(--branco); padding: 2.5rem; border-radius: 24px; text-align: center; border: 1px solid var(--borda); box-shadow: 0 15px 40px var(--sombra); transition: 0.3s; }
+    .contato-card:hover { transform: translateY(-6px); }
+    .contato-card h3 { margin-bottom: 1rem; font-size: 1.3rem; }
+    .contato-card p { color: var(--texto-suave); line-height: 1.7; }
+
+    /* ===================== FOOTER ===================== */
+    .rodape { background: #08141d; color: rgba(255,255,255,0.75); text-align: center; padding: 2rem; }
+    .rodape p:first-child { margin-bottom: 0.5rem; }
+
+    /* ===================== SIMULADOR ===================== */
+    .simulador-secao { padding: 7rem 8%; background: #08141d; }
+    .simulador-secao .rotulo { color: var(--verde); }
+    .simulador-secao h2 { font-family: 'Orbitron', sans-serif; font-size: 2.8rem; line-height: 1.2; margin-bottom: 1.2rem; color: var(--branco); }
+    .simulador-secao .secao-titulo p { color: rgba(255,255,255,0.6); }
+
+    .sim-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+    .sim-tab {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .sim-tab:hover { background: rgba(124,201,163,0.15); color: var(--verde); }
+    .sim-tab.ativo { background: var(--verde-escuro); color: #fff; border-color: var(--verde-escuro); }
+
+    .sim-painel { display: none; }
+    .sim-painel.ativo { display: block; }
+
+    /* métricas */
+    .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+    .metrica { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1.25rem; text-align: center; }
+    .metrica-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+    .metrica-valor { font-size: 26px; font-weight: 600; color: var(--verde); }
+    .metrica-unit { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+    /* mapa */
+    .mapa-layout { display: grid; grid-template-columns: 1fr 320px; gap: 0; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+    #mapa { height: 480px; }
+    .mapa-lateral { background: rgba(255,255,255,0.05); border-left: 1px solid rgba(255,255,255,0.08); overflow-y: auto; padding: 1rem; max-height: 480px; }
+    .lateral-titulo { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .ponto-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
+    .ponto-card:hover { border-color: var(--verde); background: rgba(124,201,163,0.1); }
+    .ponto-card.selecionado { border-color: var(--verde); background: rgba(61,139,109,0.2); }
+    .ponto-nome { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+    .ponto-meta { font-size: 11px; color: rgba(255,255,255,0.5); }
+    .badge-viab { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 5px; }
+    .badge-alta { background: rgba(124,201,163,0.2); color: #7cc9a3; }
+    .badge-media { background: rgba(239,159,39,0.2); color: #EF9F27; }
+    .badge-regular { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+
+    /* dashboard */
+    .graficos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grafico-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 1.25rem; }
+    .grafico-titulo { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* ranking */
+    .ranking-tabela { width: 100%; border-collapse: collapse; }
+    .ranking-tabela th { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .ranking-tabela td { padding: 14px 12px; font-size: 13px; color: rgba(255,255,255,0.85); border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .rank-num { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; }
+    .r1 { color: #EF9F27; }
+    .r2 { color: rgba(255,255,255,0.5); }
+    .r3 { color: #CD7F32; }
+    .barra-wrap { width: 80px; background: rgba(255,255,255,0.08); border-radius: 4px; height: 5px; }
+    .barra { height: 5px; border-radius: 4px; background: var(--verde); }
+
+    /* ===================== RESPONSIVO ===================== */
+    @media (max-width: 950px) {
+      .menu { flex-direction: column; gap: 1.5rem; }
+      .sobre-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 3rem; }
+      .mapa-layout { grid-template-columns: 1fr; }
+      .mapa-lateral { max-height: 300px; border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+      .graficos-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 650px) {
+      .hero { padding: 2rem 5%; }
+      .secao, .simulador-secao { padding: 5rem 5%; }
+      .menu-links { flex-wrap: wrap; justify-content: center; gap: 1rem; }
+      .hero h1 { font-size: 2.3rem; }
+      .secao h2, .simulador-secao h2 { font-size: 2rem; }
+      .painel-preco { padding: 2.5rem; }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="hero" id="topo">
+    <nav class="menu">
+      <a class="logo" href="#topo">NEKOBUS</a>
+      <ul class="menu-links">
+        <li><a href="#projeto">Projeto</a></li>
+        <li><a href="#origem">Origem</a></li>
+        <li><a href="#tecnologias">Tecnologias</a></li>
+        <li><a href="#simulador">Simulador</a></li>
+        <li><a href="#retorno">Impactos</a></li>
+        <li><a href="#contato">Contato</a></li>
+      </ul>
+    </nav>
+    <section class="hero-conteudo">
+      <p class="eyebrow">Smart City • Energia Renovável • Mobilidade Urbana</p>
+      <h1>Paradas Inteligentes com Energia Solar</h1>
+      <p class="descricao">O NEKOBUS é uma plataforma web desenvolvida para simular a implementação de paradas de ônibus inteligentes alimentadas por energia solar, utilizando dados de mobilidade urbana para otimizar eficiência energética, sustentabilidade e infraestrutura urbana.</p>
+      <div class="acoes">
+        <a class="botao-primario" href="#simulador">Ver Simulador </a>
+        <a class="botao-secundario" href="#projeto">Explorar Projeto </a>
+      </div>
+    </section>
+  </header>
+
+  <main>
+
+    <!-- SOBRE O PROJETO -->
+    <section class="secao" id="projeto">
+      <div class="secao-titulo">
+        <p class="rotulo">Sobre o Projeto</p>
+        <h2>Tecnologia e sustentabilidade para cidades inteligentes </h2>
+        <p>O NekoBus foi desenvolvido para demonstrar como energia renovável e análise de dados urbanos podem transformar a infraestrutura das cidades, promovendo soluções inteligentes, sustentáveis e eficientes para o transporte público.</p>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <figure>
+            <img src="./img/energiasolarSecao.png" alt="Energia Solar">
+            <figcaption>Energia renovável </figcaption>
+          </figure>
+          <h3>Energia Solar</h3>
+          <p>O projeto simula a utilização de painéis solares em paradas urbanas para geração de energia limpa e sustentável.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/paradaDeonibus1.png" alt="Mobilidade Urbana">
+            <figcaption>Mobilidade urbana </figcaption>
+          </figure>
+          <h3>Fluxo de Passageiros</h3>
+          <p>Dados inspirados em plataformas de mobilidade são utilizados para identificar regiões estratégicas de implantação.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/paradaDeonibus2.png" alt="Dashboard">
+            <figcaption>Dashboards </figcaption>
+          </figure>
+          <h3>Visualização Inteligente</h3>
+          <p>O sistema apresenta gráficos e indicadores relacionados ao impacto energético, econômico e ambiental.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/cidademoderna.png" alt="Smart City">
+            <figcaption>Smart Cities </figcaption>
+          </figure>
+          <h3>Infraestrutura Inteligente</h3>
+          <p>A proposta integra tecnologia, sustentabilidade e mobilidade urbana para cidades mais modernas e eficientes.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ORIGEM -->
+    <section class="secao sobre" id="origem">
+      <div class="sobre-grid">
+        <div class="sobre-texto">
+          <p class="rotulo">Origem da Ideia</p>
+          <h2>Como surgiu o NekoBus? </h2>
+          <p>O NekoBus nasceu da necessidade de unir energias renováveis com análise de dados urbanos para melhorar a infraestrutura das cidades.</p>
+          <p>A crescente demanda energética das áreas urbanas e a falta de estruturas sustentáveis em pontos de transporte público motivaram a criação de uma solução inteligente voltada para mobilidade urbana e eficiência energética.</p>
+          <p>A ideia ganhou força através do conceito de Smart Cities, utilizando informações inspiradas em plataformas de mobilidade urbana para identificar os locais com maior fluxo de passageiros e maior potencial de geração solar.</p>
+        </div>
+        <div class="sobre-imagem">
+          <img src="./img/reduçaodeCO2.png" alt="Origem do projeto">
+        </div>
+      </div>
+    </section>
+
+    <!-- TECNOLOGIAS -->
+    <section class="secao sobre" id="tecnologias">
+      <div class="sobre-grid">
+        <div class="sobre-imagem">
+          <img src="./img/tecnologiasSecao.png" alt="Tecnologias utilizadas">
+        </div>
+        <div class="sobre-texto">
+          <p class="rotulo">Tecnologias Utilizadas</p>
+          <h2>Desenvolvimento moderno e interativo </h2>
+          <p>O projeto foi desenvolvido utilizando tecnologias modernas de desenvolvimento web para criar uma plataforma visualmente interativa, responsiva e acessível.</p>
+          <p>A interface foi construída com HTML, CSS e JavaScript, permitindo uma navegação dinâmica e intuitiva.</p>
+          <p>Bibliotecas como Chart.js e Leaflet foram utilizadas para criação de dashboards inteligentes e mapeamento geográfico de pontos estratégicos da cidade.</p>
+          <p>O algoritmo de simulação realiza cálculos baseados em fluxo de passageiros e potencial de geração energética, permitindo análises ambientais e econômicas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SIMULADOR ============ -->
+    <section class="simulador-secao" id="simulador">
+      <div class="secao-titulo">
+        <p class="rotulo">Simulador Interativo</p>
+        <h2>Experimente o NekoBus </h2>
+        <p>Explore o mapa de Sorocaba, veja os gráficos de impacto e confira o ranking dos melhores pontos para instalação de energia solar.</p>
+      </div>
+
+      <!-- métricas gerais -->
+      <div class="metricas" id="metricas-gerais"></div>
+
+      <!-- abas -->
+      <div class="sim-tabs">
+        <button class="sim-tab ativo" onclick="abrirAba('mapa', this)"> Mapa</button>
+        <button class="sim-tab" onclick="abrirAba('dashboard', this)"> Dashboard</button>
+        <button class="sim-tab" onclick="abrirAba('ranking', this)"> Ranking</button>
+      </div>
+
+      <!-- PAINEL MAPA -->
+      <div id="painel-mapa" class="sim-painel ativo">
+        <div class="mapa-layout">
+          <div id="mapa"></div>
+          <div class="mapa-lateral">
+            <div class="lateral-titulo">Pontos de ônibus</div>
+            <div id="lista-pontos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL DASHBOARD -->
+      <div id="painel-dashboard" class="sim-painel">
+        <div class="graficos-grid">
+          <div class="grafico-box">
+            <div class="grafico-titulo">Energia estimada por ponto (kWh/dia)</div>
+            <canvas id="graficoEnergia" height="220"></canvas>
+          </div>
+          <div class="grafico-box">
+            <div class="grafico-titulo">Fluxo de passageiros por ponto</div>
+            <canvas id="graficoFluxo" height="220"></canvas>
+          </div>
+          <div class="grafico-box">
+            <div class="grafico-titulo">Redução de CO₂ mensal (kg)</div>
+            <canvas id="graficoCO2" height="220"></canvas>
+          </div>
+          <div class="grafico-box">
+            <div class="grafico-titulo">Economia anual estimada (R$)</div>
+            <canvas id="graficoEcon" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL RANKING -->
+      <div id="painel-ranking" class="sim-painel">
+        <div style="overflow-x:auto;">
+          <table class="ranking-tabela">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ponto</th>
+                <th>Pessoas/dia</th>
+                <th>Energia (kWh)</th>
+                <th>CO₂ evitado</th>
+                <th>Viabilidade</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-ranking"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUNCIONAMENTO -->
+    <section class="secao processo" id="processo">
+      <div class="secao-titulo">
+        <p class="rotulo">Funcionamento</p>
+        <h2>Como o NekoBus funciona </h2>
+      </div>
+      <div class="processo-grid">
+        <article class="processo-card">
+          <span>01</span>
+          <h3>Coleta de Dados</h3>
+          <p>O sistema utiliza informações de mobilidade urbana para identificar os pontos com maior fluxo de passageiros.</p>
+        </article>
+        <article class="processo-card">
+          <span>02</span>
+          <h3>Simulação Energética</h3>
+          <p>O algoritmo calcula o potencial de geração solar e eficiência energética em cada localidade analisada.</p>
+        </article>
+        <article class="processo-card">
+          <span>03</span>
+          <h3>Dashboards Inteligentes</h3>
+          <p>Os resultados são apresentados através de gráficos e indicadores ambientais, econômicos e energéticos.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ORÇAMENTO -->
+    <section class="secao">
+      <div class="secao-titulo">
+        <p class="rotulo">Investimento e Viabilidade</p>
+        <h2>Orçamento estimado do projeto </h2>
+      </div>
+      <div class="painel-preco">
+        <h3>Infraestrutura inteligente e sustentável</h3>
+        <p>O custo estimado para implantação física de cada unidade do projeto é de aproximadamente R$ 7.000,00, incluindo painéis solares, estrutura da parada, sistemas elétricos, iluminação e hardware de comunicação.</p>
+        <p>Apesar do investimento inicial, o projeto apresenta potencial de retorno a médio e longo prazo através da redução dos custos energéticos municipais e da valorização da infraestrutura urbana sustentável.</p>
+        <p>O NekoBus também possui potencial para futuras expansões envolvendo Internet das Coisas (IoT), monitoramento em tempo real e integração com sistemas inteligentes de mobilidade urbana.</p>
+      </div>
+    </section>
+
+    <!-- RETORNO -->
+    <section class="secao" id="retorno">
+      <div class="secao-titulo">
+        <p class="rotulo">Retorno Esperado</p>
+        <h2>Impactos positivos do projeto </h2>
+        <p>O projeto busca gerar benefícios ambientais, econômicos e sociais através da integração entre energia renovável e mobilidade urbana inteligente.</p>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <figure>
+            <img src="./img/dadosurbanos.png" alt="Economia energética">
+            <figcaption>Economia </figcaption>
+          </figure>
+          <h3>Redução de Custos</h3>
+          <p>A microgeração solar pode reduzir significativamente os custos de energia elétrica utilizados em estruturas urbanas públicas.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/paisagem.png" alt="Sustentabilidade">
+            <figcaption>Meio ambiente </figcaption>
+          </figure>
+          <h3>Redução de CO₂</h3>
+          <p>A utilização de energia renovável contribui diretamente para diminuição da emissão de gases poluentes.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/segurançaeconforto.png" alt="Qualidade urbana">
+            <figcaption>Qualidade urbana </figcaption>
+          </figure>
+          <h3>Mais Segurança e Conforto</h3>
+          <p>A iluminação inteligente e a disponibilidade de carregamento de dispositivos melhoram a experiência dos passageiros.</p>
+        </article>
+        <article class="card">
+          <figure>
+            <img src="./img/reducaodecustos.png" alt="Infraestrutura inteligente">
+            <figcaption>Inovação </figcaption>
+          </figure>
+          <h3>Modernização Urbana</h3>
+          <p>O projeto fortalece o conceito de Smart Cities através da integração entre tecnologia, sustentabilidade e análise de dados.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- CONTATO -->
+    <section class="secao contato" id="contato">
+      <div class="secao-titulo">
+        <p class="rotulo">Contato</p>
+        <h2>Entre em contato com o projeto </h2>
+      </div>
+      <div class="contato-grid">
+        <article class="contato-card">
+          <h3>E-mail </h3>
+          <p>contato@nekobus.com</p>
+        </article>
+        <article class="contato-card">
+          <h3>GitHub </h3>
+          <p>github.com/seuprojeto</p>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="rodape">
+    <p>NEKOBUS © 2026</p>
+    <p>Mobilidade inteligente com energia renovável.</p>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="./js/script.js"></script>
+
+</body>
+</html>
